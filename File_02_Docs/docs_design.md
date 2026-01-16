@@ -418,7 +418,7 @@ AND (optional: total_revenue >= median)
 **Why first:**
 - Still buying (easier to save)
 - High risk (will churn if ignored)
-- Best conversion: 35-45%
+**Expected conversion: To be measured during pilot**
 
 **Action:** VIP outreach + light incentive
 
@@ -437,7 +437,7 @@ AND churn_risk_level IN ('HIGH', 'MEDIUM')
 **Why second:**
 - Already sliding (31-90 days dormant)
 - Still winnable
-- Conversion: 20-30%
+**Expected conversion: To be measured during pilot**
 
 **Action:** Win-back sequence + shipping/discount
 
@@ -457,7 +457,7 @@ AND (optional: days_since_last_order <= 90)
 **Why third:**
 - Already churned (90+ days)
 - Recent enough to remember brand
-- Conversion: 10-15%
+**Expected conversion: To be measured during pilot**
 
 **Action:** Strong comeback offer or survey
 
@@ -864,18 +864,22 @@ Requires: Campaign events or conversion proxy (repurchase tracking)
 Revenue Protected = N × C × V
 ```
 
-**Example scenario:**
+**Scenario Analysis (Sensitivity Table):**
 
-| Tier | Count | Conversion | Avg Value | Revenue Protected |
-|------|-------|------------|-----------|-------------------|
-| P1 | 87 | 35% | €625 | €19,031 |
-| P2 | 312 | 20% | €625 | €39,000 |
-| P3 | 189 | 10% | €625 | €11,813 |
-| **Total** | **588** | **-** | **-** | **€69,844** |
+**Note:** Conversion rates are hypothetical assumptions for sizing. Actual rates to be measured during pilot.
 
-**Conservative estimate:** €35K-70K annually
+| Scenario | P1 Conversion | P2 Conversion | P3 Conversion | Total Revenue Protected |
+|----------|---------------|---------------|---------------|-------------------------|
+| **Conservative** | 15% | 10% | 5% | €21,234 |
+| **Moderate** | 25% | 15% | 8% | €40,781 |
+| **Optimistic** | 35% | 20% | 10% | €60,344 |
 
-**Document assumptions clearly:** Conversion rates are industry benchmarks, not guaranteed.
+**Assumptions:**
+- Customer counts: P1=87, P2=312, P3=189
+- Average customer value: €625 (median from base_customers)
+- **Conversion rates are sizing estimates only** (not guaranteed outcomes)
+
+**Measurement approach:** Track repurchase within 30 days post-intervention using `intervention_tracking` table.
 
 ---
 
