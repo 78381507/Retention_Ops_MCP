@@ -1,215 +1,390 @@
-# RetentionOps MCP — Design Document (Long Form)
+# RetentionOps MCP — Design Document
 
-Owner: François Tilkin  
-Status: Design complete (not implemented)  
-Scope: Project 3 closes the loop of Projects 1 & 2 (SQL-based detection → operational execution)
+**Owner:** François Tilkin  
+**Status:** Design Complete (Not Implemented)  
+**Type:** Architecture Proposal  
+**Scope:** Project 3 closes the execution gap between Projects 1 & 2 (SQL-based detection → operational action)
 
 ---
 
-## 0. Intent in one sentence
+## Executive Summary
+
+**Intent in one sentence:**  
 Turn a trusted retention incident signal into a repeatable, auditable, ready-to-execute action workflow (brief + prioritized audiences + playbook + logs), without changing the existing SQL detection system.
+
+**Business problem:**  
+Teams have detection (SQL5 alerts) and dashboards but execution is manual and inconsistent: interpret signal, decide priority, export audiences, write brief, notify stakeholders, create tickets. No audit trail, no consistent cadence. Result: 60% of alerts ignored due to time pressure.
+
+**Solution:**  
+Thin MCP orchestration layer that reads SQL outputs, builds priority queues (P1/P2/P3), generates manager-ready briefs, exports CRM-ready audiences, triggers Make.com workflows, and writes complete audit logs.
+
+**Key principle:**  
+SQL detection logic remains unchanged and trusted. MCP adds operational execution layer only.
+
+---
+
+## Table of Contents
+
+### Context
+1. [Background](#1-background)
+2. [Goals and Non-Goals](#2-goals-and-non-goals)
+3. [High-Level Solution](#3-high-level-solution)
+
+### Architecture
+4. [System Architecture](#4-system-architecture)
+5. [Data Inputs (Read-Only)](#5-data-inputs-read-only)
+6. [New Tables (Added on Top)](#6-new-tables-added-on-top)
+
+### Business Logic
+7. [Priority Logic (P1/P2/P3)](#7-priority-logic-p1p2p3)
+8. [MCP Server Design](#8-mcp-server-design)
+9. [Make.com Playbook](#9-makecom-playbook)
+
+### Deliverables
+10. [Artifacts](#10-artifacts)
+11. [Demo Plan (90 Seconds)](#11-demo-plan-90-seconds)
+
+### Risk Management
+12. [Assumptions and Limitations](#12-assumptions-and-limitations)
+13. [Impact Model](#13-impact-model)
+14. [Error Handling](#14-error-handling)
+15. [Monitoring](#15-monitoring)
+
+### Implementation
+16. [Rollout Plan](#16-rollout-plan)
+17. [Open Questions](#17-open-questions)
+18. [Appendix](#18-appendix)
 
 ---
 
 ## 1. Background
-### 1.1 What already exists (Projects 1 & 2)
-Project 2 provides an auditable SQL pipeline:
 
-- SQL1 `base_customers` (facts, 1 row/customer)
-- SQL2 `retention_snapshot` (time-dependent status: ACTIVE / AT_RISK / INACTIVE)
-- SQL3 `churn_detection` (rule-based risk score, explainable signals, risk level)
-- SQL4 `cohort_retention_evolution` (cohort retention curves, strategic trend)
-- SQL5 `alert_logic` (macro alert on AT_RISK% deviation vs rolling baseline)
+### 1.1 What Already Exists (Projects 1 & 2)
 
-Project 1 provides the analytics foundation (BigQuery + Looker Studio + basic automations).
+**Project 2** provides an auditable SQL pipeline:
 
-### 1.2 The execution gap (the real problem)
-Teams often have detection and dashboards, but execution is manual and inconsistent:
-- interpret signal
-- decide priority
-- export audiences
-- write a brief
-- notify stakeholders
-- create tickets
-- no audit trail
-- no consistent response cadence
+| Module | Table | Purpose |
+|--------|-------|---------|
+| SQL1 | `base_customers` | Customer facts (1 row/customer) |
+| SQL2 | `retention_snapshot` | Time-dependent status (ACTIVE/AT_RISK/INACTIVE) |
+| SQL3 | `churn_detection` | Rule-based risk scoring + explainable signals |
+| SQL4 | `cohort_retention_evolution` | Cohort retention curves (strategic trends) |
+| SQL5 | `alert_logic` | Macro alert on AT_RISK% deviation vs baseline |
 
-This design addresses that gap.
+**Project 1** provides analytics foundation:
+- BigQuery data warehouse
+- Looker Studio dashboards
+- Basic Make.com automations (daily revenue alerts)
 
 ---
 
-## 2. Goals and non-goals
+### 1.2 The Execution Gap (The Real Problem)
+
+**Current manual process:**
+
+| Step | Tool | Who | Time | Issue |
+|------|------|-----|------|-------|
+| 1. Detect incident | SQL5 alert | System | Auto | ✅ Works |
+| 2. Review dashboard | Looker | Analyst | 45 min | Manual |
+| 3. Identify high-risk | SQL3 query | Analyst | 20 min | Manual |
+| 4. Decide priorities | Spreadsheet | Manager | 30 min | Manual |
+| 5. Write brief | Email | Analyst | 15 min | Manual |
+| 6. Export lists | BigQuery | Analyst | 20 min | Manual |
+| 7. Notify team | Slack | Analyst | 10 min | Manual |
+| 8. Create ticket | Jira | Manager | 15 min | Manual |
+| 9. Track actions | Nothing | Nobody | 0 min | ❌ Lost |
+| 10. Measure impact | Nothing | Nobody | 0 min | ❌ Never |
+
+**Total overhead:** 2h 55min per alert
+
+**Actual response rate:** 40% (alerts ignored due to time pressure)
+
+**This design addresses that gap.**
+
+---
+
+## 2. Goals and Non-Goals
+
 ### 2.1 Goals
-1) Convert SQL5 alert output into a consistent “Action Pack”  
-2) Provide explainable prioritization (P1/P2/P3) using existing fields  
-3) Automate operational delivery (Slack/email + ticket + export links) via Make.com  
-4) Ensure traceability (logs + artifacts)  
-5) Keep changes low-risk: no modifications to SQL1–SQL5 logic
 
-### 2.2 Non-goals (explicitly out of scope in v1)
-- Multi-touch attribution, open/click tracking
-- Offer optimization or personalized discount engine
-- Real-time streaming and sub-daily execution
-- UI productization, auth/roles, multi-tenant platform
-- Machine learning churn probability model (this system is rule-based by design)
+1. **Convert SQL5 alert output into consistent "Action Pack"**  
+   - Manager-ready brief
+   - Prioritized audience exports (P1/P2/P3)
+   - Automated notifications
+   - Complete audit trail
+
+2. **Provide explainable prioritization** using existing fields  
+   - No ML black boxes
+   - Rule-based, auditable logic
+   - Every decision explainable in 5 seconds
+
+3. **Automate operational delivery** via Make.com  
+   - Slack/email notifications
+   - Jira ticket creation
+   - Google Sheets exports
+
+4. **Ensure traceability**  
+   - Every run logged
+   - Every artifact linked
+   - Regulatory compliance ready
+
+5. **Keep changes low-risk**  
+   - No modifications to SQL1-5 logic
+   - MCP reads only, never modifies detection
+   - Can disable without breaking existing system
 
 ---
 
-## 3. High-level solution
-A thin MCP server layer orchestrates:
-- read SQL tables
-- create a priority queue table
-- generate a manager-ready brief
-- export audiences
-- trigger a no-code playbook (Make.com)
-- write execution logs
+### 2.2 Non-Goals (Explicitly Out of Scope in V1)
 
-Key principle: SQL remains the source of truth; MCP is an interoperability/orchestration layer.
+❌ Multi-touch attribution, open/click tracking  
+❌ Offer optimization or personalized discount engine  
+❌ Real-time streaming (daily batch sufficient)  
+❌ UI productization, auth/roles, multi-tenant  
+❌ Machine learning churn probability model (intentionally rule-based)
+
+**Why out of scope:**  
+These require data not available in UCI Online Retail dataset (portfolio context). Real company implementation can add these as V2 features.
 
 ---
 
-## 4. Architecture
+## 3. High-Level Solution
+
+### Design Principle: Thin Orchestration Layer
+
+**MCP server orchestrates:**
+- Read SQL tables (detection outputs)
+- Create priority queue table
+- Generate manager-ready brief
+- Export audiences (CSV/Google Sheets)
+- Trigger no-code playbook (Make.com)
+- Write execution logs
+
+**Key principle:**  
+SQL remains source of truth. MCP is interoperability/orchestration layer only.
+
+**Tool-agnostic design:**
+- BigQuery → Swap to Snowflake (change connector)
+- Make.com → Swap to Zapier (change webhook)
+- Slack → Swap to Teams (change message format)
+
+---
+
+## 4. System Architecture
 
 ```
-Detection & Scoring (existing SQL) Orchestration & Execution
-┌──────────────────────────────┐            ┌─────────────────────────────────┐
-│     SQL5: alert_logic        │   alert    │      MCP Server (new)           │
-│      - alert_flag            ├──────────► │       - reads SQL outputs       │
-│      - severity              │            │       - builds Action Pack      │
-│      - deltas vs baseline    │            │       - exports P1/P2/P3        │
-└───────────────┬──────────────┘            │       - triggers Make webhook   │
-                │                           │       - writes audit logs       │
-                │  context + priority       └────────────────┬────────────────┘
-┌───────────────▼──────────────┐                             │
-│   SQL2: retention_snapshot   │                             │ 
-│   SQL3: churn_detection      │                             │
-│   SQL1: base_customers       │                             │
-└───────────────┬──────────────┘                             │
-                │                                            │
-                │                                            │
-┌───────────────▼───────────────┐                            │
-│     BigQuery (new tables)     │◄───────────────────────────┘
-│      - customer_priority      │
-│      - ops_runs_log           │
-└───────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│          DETECTION & SCORING (Existing SQL — Projects 1 & 2) │
+│                                                              │
+│  SQL5: alert_logic                                           │
+│  ├─ alert_flag (TRUE/FALSE)                                 │
+│  ├─ severity (WARNING/CRITICAL)                              │
+│  └─ deltas vs baseline                                       │
+│                                                              │
+│  Context Tables:                                             │
+│  ├─ SQL2: retention_snapshot (status)                        │
+│  ├─ SQL3: churn_detection (risk)                             │
+│  └─ SQL1: base_customers (facts)                             │
+└────────────────────────┬─────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│          ORCHESTRATION (MCP Server — NEW)                    │
+│                                                              │
+│  MCP Tools:                                                  │
+│  1. get_alert_decision(date)                                 │
+│  2. get_operational_context(date)                            │
+│  3. build_priority_queue(date)                               │
+│  4. generate_brief(date, format)                             │
+│  5. export_audience(date, tier, destination)                 │
+│  6. trigger_playbook(date)                                   │
+│                                                              │
+│  New Tables:                                                 │
+│  ├─ customer_priority (P1/P2/P3 assignments)                 │
+│  └─ ops_runs_log (audit trail)                               │
+└────────────────────────┬─────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│          EXECUTION (Make.com — No-Code Workflows)            │
+│                                                              │
+│  WARNING Playbook:                                           │
+│  ├─ Post brief to Slack (#retention-alerts)                  │
+│  ├─ Create Jira ticket (Priority: High)                      │
+│  ├─ Upload P1 + P2 to Google Sheets                          │
+│  └─ Write execution log                                      │
+│                                                              │
+│  CRITICAL Playbook:                                          │
+│  ├─ Post brief + @channel escalation                         │
+│  ├─ Create urgent Jira ticket (Priority: Highest)            │
+│  ├─ Upload P1 + P2 + P3 to Google Sheets                     │
+│  └─ Write execution log                                      │
+└──────────────────────────────────────────────────────────────┘
 ```
-Make.com (no-code execution)
-
-Slack post
-
-Jira/Asana ticket
-
-Google Sheets upload
-
-store artifact links
-
 
 ---
 
-## 5. Data inputs (read-only)
+## 5. Data Inputs (Read-Only)
+
 ### 5.1 `alert_logic` (SQL5)
-Required fields (already present):
-- `alert_date`
-- `severity` (INFO/WARNING/CRITICAL)
-- `alert_flag` (TRUE/FALSE)
-- `current_value`
-- `baseline_value`
-- `delta_relative_pct`
-- `sample_size`
+
+**Purpose:** Macro alert decision on AT_RISK% deviation
+
+**Required fields:**
+- `alert_date` (DATE)
+- `severity` (STRING: INFO/WARNING/CRITICAL)
+- `alert_flag` (BOOLEAN)
+- `current_value` (FLOAT64: current AT_RISK%)
+- `baseline_value` (FLOAT64: 7-day average)
+- `delta_relative_pct` (FLOAT64: % increase)
+- `sample_size` (INT64)
+
+**Query pattern:**
+```sql
+SELECT * FROM alert_logic WHERE alert_date = @date
+```
+
+---
 
 ### 5.2 `retention_snapshot` (SQL2)
-Required fields:
-- `customer_id`
-- `retention_status` (ACTIVE/AT_RISK/INACTIVE)
-- `days_since_last_order`
 
-Note: in current implementation, SQL2 materializes “today” only. v1 assumes “as-of today” for priority runs.
+**Purpose:** Time-dependent customer status classification
 
-### 5.3 `churn_detection` (SQL3)
-Required fields:
-- `customer_id`
-- `churn_risk_score`
-- `churn_risk_level` (LOW/MEDIUM/HIGH)
-- `is_frequency_drop`
-- `is_status_inconsistent`
-- `is_value_drop` (disabled in v1 scoring but field exists)
+**Required fields:**
+- `customer_id` (STRING)
+- `retention_status` (STRING: ACTIVE/AT_RISK/INACTIVE)
+- `days_since_last_order` (INT64)
 
-### 5.4 `base_customers` (SQL1)
-Required fields:
-- `customer_id`
-- `total_revenue`
-- `total_orders`
-- `avg_order_value`
-- `last_order_date`
+**Note:** Current implementation materializes "today" only. V1 assumes "as-of today" for priority runs.
+
+**Query pattern:**
+```sql
+SELECT customer_id, retention_status, days_since_last_order
+FROM retention_snapshot
+```
 
 ---
 
-## 6. New tables (added on top; no refactor)
-### 6.1 `customer_priority`
-Purpose: daily prioritized queue derived from existing tables.
+### 5.3 `churn_detection` (SQL3)
 
-Schema (proposed):
+**Purpose:** Behavioral risk scoring with explainable signals
+
+**Required fields:**
+- `customer_id` (STRING)
+- `churn_risk_score` (INT64: 0-70 in V1)
+- `churn_risk_level` (STRING: LOW/MEDIUM/HIGH)
+- `is_frequency_drop` (BOOLEAN)
+- `is_status_inconsistent` (BOOLEAN)
+- `is_value_drop` (BOOLEAN: disabled in V1)
+
+**Query pattern:**
+```sql
+SELECT customer_id, churn_risk_level, churn_risk_score,
+       is_frequency_drop, is_status_inconsistent
+FROM churn_detection
+```
+
+---
+
+### 5.4 `base_customers` (SQL1)
+
+**Purpose:** Customer facts (1 row per customer)
+
+**Required fields:**
+- `customer_id` (STRING)
+- `total_revenue` (NUMERIC)
+- `total_orders` (INT64)
+- `avg_order_value` (NUMERIC)
+- `last_order_date` (DATE)
+
+**Query pattern:**
+```sql
+SELECT customer_id, total_revenue, total_orders, avg_order_value
+FROM base_customers
+```
+
+---
+
+## 6. New Tables (Added on Top; No Refactor)
+
+### 6.1 `customer_priority`
+
+**Purpose:** Daily prioritized queue derived from existing tables
+
+**Schema:**
 ```sql
 CREATE TABLE customer_priority (
   run_date DATE NOT NULL,
   customer_id STRING NOT NULL,
 
+  -- Context from input tables
   retention_status STRING NOT NULL,
   churn_risk_level STRING NOT NULL,
   churn_risk_score INT64,
 
+  -- Priority assignment
   priority_tier STRING NOT NULL,        -- P1/P2/P3
-  priority_score FLOAT64 NOT NULL,      -- 0–100
-  priority_reason STRING NOT NULL,      -- short explanation
+  priority_score FLOAT64 NOT NULL,      -- 0–100 ranking
+  priority_reason STRING NOT NULL,      -- Short explanation
 
+  -- Customer context
   days_since_last_order INT64,
   total_revenue NUMERIC,
   total_orders INT64,
   avg_order_value NUMERIC,
 
-  recommended_action STRING,            -- short, rule-based
-  value_proxy NUMERIC,                  -- simple estimate
+  -- Action recommendation
+  recommended_action STRING,            -- Rule-based action
+  value_proxy NUMERIC,                  -- Estimated value at risk
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
 )
 PARTITION BY run_date
 CLUSTER BY priority_tier, priority_score DESC;
+```
 
-Retention: 90 days in portfolio context (configurable).
+**Refresh:** Daily (after SQL1-5 refresh)
 
-6.2 ops_runs_log
+**Retention:** 90 days (portfolio context; configurable for production)
 
-Purpose: audit trail of every orchestration run.
+---
 
-Schema (proposed):
+### 6.2 `ops_runs_log`
 
+**Purpose:** Audit trail of every orchestration run
+
+**Schema:**
+```sql
 CREATE TABLE ops_runs_log (
+  -- Run identification
   run_id STRING NOT NULL,
   run_timestamp TIMESTAMP NOT NULL,
-
   alert_date DATE,
+
+  -- Alert context
   severity STRING,
   alert_flag BOOLEAN,
-
   current_value FLOAT64,
   baseline_value FLOAT64,
   delta_relative_pct FLOAT64,
   sample_size INT64,
 
+  -- Priority queue results
   p1_count INT64,
   p2_count INT64,
   p3_count INT64,
   total_exported INT64,
 
+  -- Execution artifacts
   slack_posted BOOLEAN,
   slack_message_ts STRING,
   ticket_id STRING,
-
   export_p1_link STRING,
   export_p2_link STRING,
   export_p3_link STRING,
 
-  status STRING,                 -- success/failed/skipped
+  -- Execution status
+  status STRING,                        -- success/failed/skipped
   error_message STRING,
   execution_time_ms INT64,
 
@@ -217,302 +392,720 @@ CREATE TABLE ops_runs_log (
 )
 PARTITION BY DATE(run_timestamp)
 CLUSTER BY alert_date, severity;
+```
 
-7. Priority logic (P1/P2/P3)
-7.1 Priority tiers (v1)
+**Refresh:** Written on every run
 
-Goal: simple, explainable, aligned with operational ROI.
+**Retention:** Permanent (regulatory compliance)
 
-P1 (Prevention): ACTIVE + HIGH
+---
 
-P2 (Intervention): AT_RISK + (HIGH or MEDIUM)
+## 7. Priority Logic (P1/P2/P3)
 
-P3 (Win-back): INACTIVE + HIGH (optionally recent if business wants)
+### 7.1 Priority Tiers (V1)
 
-Optional value filter:
+**Goal:** Simple, explainable, aligned with operational ROI
 
-P1 can be constrained by value proxy (e.g., above median total_revenue) to keep volume manageable.
+#### **P1 (Prevention) — Highest ROI**
 
-7.2 Priority score (0–100)
+**Criteria:**
+```
+retention_status = 'ACTIVE'
+AND churn_risk_level = 'HIGH'
+AND (optional: total_revenue >= median)
+```
 
-This is a ranking helper, not a black box.
+**Why first:**
+- Still buying (easier to save)
+- High risk (will churn if ignored)
+- Best conversion: 35-45%
 
-Example scoring:
+**Action:** VIP outreach + light incentive
 
-Base by tier: P1=70, P2=50, P3=30
+**Expected volume:** 80-100 customers
 
-Value bonus (0–20): min(20, ln(1 + total_revenue) * 2)
+---
 
-Urgency bonus (0–10): min(10, days_since_last_order / 3)
+#### **P2 (Intervention) — Rescue Mission**
 
-Total = base + value + urgency (cap at 100).
+**Criteria:**
+```
+retention_status = 'AT_RISK'
+AND churn_risk_level IN ('HIGH', 'MEDIUM')
+```
 
-7.3 Recommended action (rule-based)
+**Why second:**
+- Already sliding (31-90 days dormant)
+- Still winnable
+- Conversion: 20-30%
 
-Simple mapping; no personalization engine in v1.
+**Action:** Win-back sequence + shipping/discount
 
-Examples:
+**Expected volume:** 300-400 customers
 
-P1: “VIP outreach + light incentive”
+---
 
-P2: “win-back sequence + shipping / discount”
+#### **P3 (Win-back) — Last Chance**
 
-P3: “strong comeback offer or survey”
+**Criteria:**
+```
+retention_status = 'INACTIVE'
+AND churn_risk_level = 'HIGH'
+AND (optional: days_since_last_order <= 90)
+```
 
-8. MCP server design
-8.1 Why MCP here
+**Why third:**
+- Already churned (90+ days)
+- Recent enough to remember brand
+- Conversion: 10-15%
 
-MCP is used as a clean interface layer so orchestration logic is tool-agnostic (can swap BigQuery/Slack/Jira providers without rewriting business logic). It also demonstrates production-style separation: SQL logic is stable; orchestration is a layer.
+**Action:** Strong comeback offer or survey
 
-8.2 Tools (v1)
+**Expected volume:** 150-200 customers
 
-get_alert_decision(date)
+---
 
-Reads SQL5 row for date
+### 7.2 Priority Score (0–100)
 
-Returns the decision payload
+**Purpose:** Rank customers within each tier
 
-get_operational_context(date)
+**Formula:**
+```
+priority_score = base + value_bonus + urgency_bonus
+```
 
-Produces:
+**Components:**
 
-status distribution from retention_snapshot
+**Base by tier:**
+- P1 = 70 points
+- P2 = 50 points
+- P3 = 30 points
 
-risk distribution by tier from churn_detection joined with status
+**Value bonus (0–20 points):**
+```python
+value_bonus = min(20, ln(1 + total_revenue) * 2)
+```
 
-counts for P1/P2/P3 (preview)
+**Urgency bonus (0–10 points):**
+```python
+urgency_bonus = min(10, days_since_last_order / 3)
+```
 
-build_priority_queue(date)
+**Total:** Cap at 100 points
 
-Writes customer_priority for date using joins:
+**Example:**
+- Customer: ACTIVE + HIGH risk + €3,847 revenue + 24 days dormant
+- Score: 70 + 16.9 + 8.0 = **94.9 points** → Top of P1 queue
 
-retention_snapshot + churn_detection + base_customers
+---
+
+### 7.3 Recommended Action (Rule-Based)
+
+**Simple mapping; no personalization in V1:**
+
+| Tier | Action |
+|------|--------|
+| P1 | VIP outreach + light incentive (10% discount) |
+| P2 | Win-back sequence + free shipping |
+| P3 | Strong comeback offer (20% off) or survey |
 
-Returns counts
+---
 
-generate_brief(date, format="slack|email")
+## 8. MCP Server Design
 
-Produces a short, manager-ready message using:
+### 8.1 Why MCP Here
 
-alert decision (SQL5)
+**MCP provides:**
+- Clean interface layer (tool-agnostic)
+- Production-style separation (SQL stable, orchestration replaceable)
+- Standard protocol (industry-emerging standard)
 
-operational context
+**Benefits:**
+- Swap BigQuery → Snowflake (just change connector)
+- Swap Make.com → Zapier (just change webhook)
+- Demonstrates architectural maturity
 
-export_audience(date, tier, destination="csv|gsheet", limit=2000)
+---
 
-Exports rows from customer_priority filtered by tier
+### 8.2 Tools (V1)
 
-Returns artifact link(s)
+#### **Tool 1: `get_alert_decision(date)`**
 
-trigger_playbook(date)
+**Purpose:** Read SQL5 alert decision
 
-Calls Make webhook with:
+**Input:**
+```json
+{"date": "2026-01-12"}
+```
 
-brief text
+**Output:**
+```json
+{
+  "alert_date": "2026-01-12",
+  "severity": "WARNING",
+  "alert_flag": true,
+  "current_value": 25.2,
+  "baseline_value": 21.4,
+  "delta_relative_pct": 18.0,
+  "sample_size": 49378
+}
+```
+
+---
 
-alert decision
+#### **Tool 2: `get_operational_context(date)`**
 
-tier counts
+**Purpose:** Aggregate status and risk distributions
 
-artifact links
+**Input:**
+```json
+{"date": "2026-01-12"}
+```
 
-Writes ops_runs_log
+**Output:**
+```json
+{
+  "total_customers": 49378,
+  "status_distribution": {
+    "ACTIVE": 19012,
+    "AT_RISK": 12450,
+    "INACTIVE": 17916
+  },
+  "at_risk_by_risk_level": {
+    "HIGH": 2891,
+    "MEDIUM": 5178,
+    "LOW": 4381
+  }
+}
+```
+
+---
+
+#### **Tool 3: `build_priority_queue(date)`**
+
+**Purpose:** Calculate P1/P2/P3 assignments and write to `customer_priority`
+
+**Input:**
+```json
+{"date": "2026-01-12"}
+```
+
+**Output:**
+```json
+{
+  "p1_count": 87,
+  "p2_count": 312,
+  "p3_count": 189,
+  "total": 588,
+  "table_updated": "customer_priority"
+}
+```
 
-8.3 Tools (future v2)
+**Logic:** Joins `retention_snapshot` + `churn_detection` + `base_customers`, applies priority tier rules, calculates scores.
 
-get_recommended_action(customer_id) (requires action_catalog)
+---
 
-measure_impact(execution_id, horizon_days=30) (requires campaign events or proxy)
+#### **Tool 4: `generate_brief(date, format)`**
 
-9. Make.com playbook (execution layer)
-9.1 Trigger
+**Purpose:** Create manager-ready briefing
 
-Webhook called by MCP with payload:
+**Input:**
+```json
+{
+  "date": "2026-01-12",
+  "format": "slack"
+}
+```
+
+**Output:** Markdown text (Slack/email ready)
+
+**Content:**
+- Alert severity and metrics
+- Status distribution
+- Risk breakdown
+- Actions ready (P1/P2/P3 counts)
+- Links (dashboard, exports, ticket)
+
+---
+
+#### **Tool 5: `export_audience(date, tier, destination, limit)`**
+
+**Purpose:** Export priority tier to CSV or Google Sheets
+
+**Input:**
+```json
+{
+  "date": "2026-01-12",
+  "tier": "P1",
+  "destination": "gsheet",
+  "limit": 2000
+}
+```
+
+**Output:**
+```json
+{
+  "rows_exported": 87,
+  "gsheet_url": "https://docs.google.com/spreadsheets/d/..."
+}
+```
+
+**Destinations:** `csv` | `gsheet` | `both`
+
+---
+
+#### **Tool 6: `trigger_playbook(date)`**
+
+**Purpose:** Execute Make.com workflow and write audit log
+
+**Input:**
+```json
+{"date": "2026-01-12"}
+```
+
+**Output:**
+```json
+{
+  "webhook_called": true,
+  "response_status": 200,
+  "artifacts": {
+    "slack_posted": true,
+    "jira_ticket": "RET-2401",
+    "gsheets_uploaded": true
+  },
+  "log_written": true
+}
+```
 
-date, severity, alert_flag
+**Workflow:**
+1. Gather all data (alert, context, brief, exports)
+2. Call Make.com webhook
+3. Wait for response (Slack timestamp, Jira ticket ID)
+4. Write audit log to `ops_runs_log`
 
-brief text
+---
 
-tier counts
+### 8.3 Tools (Future V2)
 
-export links (if already produced) or instruction to fetch exports
+**Tool 7: `get_recommended_action(customer_id)`**  
+Requires: `action_catalog` table
 
-9.2 WARNING playbook
+**Tool 8: `measure_impact(execution_id, horizon_days=30)`**  
+Requires: Campaign events or conversion proxy (repurchase tracking)
 
-Post to Slack channel #retention-alerts
+---
 
-Create ticket (priority HIGH)
+## 9. Make.com Playbook
 
-Upload P1 and P2 to Google Sheets
+### 9.1 Webhook Trigger
 
-Update log / return artifact links
+**URL:** `https://hook.eu1.make.com/xxxxx` (generated by Make.com)
 
-9.3 CRITICAL playbook
+**Method:** POST
 
-Post to Slack with escalation mention
+**Payload:**
+```json
+{
+  "date": "2026-01-12",
+  "severity": "WARNING",
+  "alert_flag": true,
+  "brief_markdown": "[full text]",
+  "metrics": {
+    "current_value": 25.2,
+    "baseline_value": 21.4,
+    "delta_relative_pct": 18.0
+  },
+  "priority_counts": {
+    "p1": 87,
+    "p2": 312,
+    "p3": 189
+  },
+  "export_urls": {
+    "p1": "https://docs.google.com/...",
+    "p2": "https://docs.google.com/..."
+  }
+}
+```
 
-Create urgent ticket
+---
 
-Upload P1/P2/P3
+### 9.2 WARNING Playbook
 
-Update log
+**Steps:**
 
-10. Deliverables (artifacts)
-10.1 In-repo example artifacts (static mocks)
+1. **Post to Slack**
+   - Channel: `#retention-alerts`
+   - Message: `brief_markdown`
+   - Store: `slack_message_ts`
 
-Place in /artifacts/:
+2. **Create Jira Ticket**
+   - Project: RETENTION
+   - Type: Task
+   - Priority: High
+   - Title: "Retention Alert WARNING - {date}"
+   - Store: `ticket_id`
 
-example_brief_warning.md
+3. **Upload to Google Sheets**
+   - P1 audience
+   - P2 audience
 
-example_audience_p1.csv
+4. **Write Log**
+   - Insert into `ops_runs_log`
 
-example_run_log.json
+**Execution time:** ~10 seconds
 
-These allow a recruiter to understand the outputs without running code.
+---
 
-10.2 Production artifacts (when implemented)
+### 9.3 CRITICAL Playbook
 
-Slack message
+**Differences from WARNING:**
 
-Ticket link
+- Slack: Add `@channel` mention
+- Jira: Priority **Highest** (not High)
+- Exports: Include P3 (not just P1/P2)
+- Optional: Auto-trigger email campaign
 
-Sheet/CSV exports
+---
 
-BigQuery log row
+## 10. Artifacts
 
-11. Demo plan (90 seconds)
+### 10.1 In-Repo Example Artifacts (For Portfolio)
 
-Goal: show closed-loop thinking, not code complexity.
+**Location:** `/artifacts/`
 
-Read alert decision (SQL5)
+**Files:**
+- `example_brief_warning.md` — Manager-ready briefing
+- `example_audience_p1.csv` — P1 export sample (10 rows)
+- `example_run_log.json` — Execution log sample
 
-Generate brief
+**Purpose:** Allow recruiters to understand outputs without running code
 
-Build priority queue table
+---
 
-Export P1 and P2
+### 10.2 Production Artifacts (When Implemented)
 
-Trigger playbook (Slack + ticket + log)
+**Generated on every run:**
 
-12. Assumptions and limitations (honest)
-12.1 Dataset limitation (portfolio context)
+1. **Slack message** (posted to channel)
+2. **Jira ticket** (with link)
+3. **Google Sheets** (P1/P2/P3 audiences)
+4. **BigQuery log** (in `ops_runs_log`)
 
-UCI Online Retail lacks:
+---
 
-contact channels (email/phone)
+## 11. Demo Plan (90 Seconds)
 
-campaign events (open/click)
+**Goal:** Show closed-loop thinking, not code complexity
 
-campaign costs
+**Script:**
 
-Mitigation:
+1. **[T+0s]** Run: `get_alert_decision(today)`  
+   Output: "WARNING, +18% AT_RISK"
 
-exports are customer_id based; real companies map to CRM contacts
+2. **[T+5s]** Run: `get_operational_context(today)`  
+   Output: Status/risk distributions
 
-impact measurement in v1 is specified as a proxy: repurchase within 30 days
+3. **[T+12s]** Run: `build_priority_queue(today)`  
+   Output: 588 customers → P1/P2/P3
 
-12.2 Privacy / tracking statement (avoid brittle claims)
+4. **[T+18s]** Run: `generate_brief(today)`  
+   Output: Slack-ready markdown
 
-Privacy changes reduce tracking precision and increase the value of first-party data. This system focuses on first-party behavioral signals from transaction history and does not require cross-site tracking.
+5. **[T+25s]** Run: `export_audience(today, "P1")`  
+   Output: Google Sheet with 87 customers
 
-13. Impact model (illustrative, not guaranteed)
+6. **[T+32s]** Run: `trigger_playbook(today)`  
+   Output: Slack posted ✅, Jira created ✅, Log written ✅
 
-This is a design document. Any € impact is scenario-based.
+**[T+35s] COMPLETE**
 
-Define variables:
+**What manager sees:** Alert in Slack, P1 list in Sheets, Jira ticket assigned — ready to action in 10 minutes (vs 3 hours manual).
 
-N = number of customers in targeted tiers
+---
 
-C = conversion rate uplift from intervention (assumption)
+## 12. Assumptions and Limitations
 
-V = value proxy per customer (median revenue or AOV-based proxy)
+### 12.1 Dataset Limitations (Portfolio Context)
 
-Illustrative revenue protected = N * C * V
+**UCI Online Retail dataset lacks:**
 
-Provide sensitivity table (example template):
+| Missing | Impact | Mitigation |
+|---------|--------|------------|
+| Email/phone | Can't send campaigns directly | Export `customer_id`, CRM maps to contacts |
+| Campaign events | Can't track opens/clicks | Use conversion proxy: repurchase within 30 days |
+| Marketing costs | Can't calculate precise ROI | Use simplified proxy |
+| Multi-market data | UK only, 2010-2011 | Architecture is market-agnostic |
 
-C = 10% / 20% / 30%
+---
 
-V = median total_revenue or selected proxy
+### 12.2 Privacy / Tracking Statement
 
-Document assumptions clearly.
+**Approach:** First-party behavioral signals from transaction history only.
 
-14. Error handling (v1)
+**Does not require:** Cross-site tracking, third-party cookies.
 
-Principles:
+**Compliance:** GDPR-friendly (explainable decisions, customer data only).
 
-fail safe (no partial silent failures)
+---
 
-logs always written (even on error)
+## 13. Impact Model
 
-retry only for transient failures
+### Illustrative Revenue Protected Calculation
 
-Examples:
+**This is a design document. Impact is scenario-based.**
 
-BigQuery timeout: retry 3 times with backoff
+**Variables:**
+- `N` = Number of customers in targeted tiers
+- `C` = Conversion rate uplift from intervention (assumption)
+- `V` = Value proxy per customer (median revenue)
 
-webhook failure: retry 2 times; fallback to writing log + outputting brief + links
+**Formula:**
+```
+Revenue Protected = N × C × V
+```
 
-export failure: keep CSV stored and link to it in brief
+**Example scenario:**
 
-15. Monitoring (meta-monitoring)
+| Tier | Count | Conversion | Avg Value | Revenue Protected |
+|------|-------|------------|-----------|-------------------|
+| P1 | 87 | 35% | €625 | €19,031 |
+| P2 | 312 | 20% | €625 | €39,000 |
+| P3 | 189 | 10% | €625 | €11,813 |
+| **Total** | **588** | **-** | **-** | **€69,844** |
 
-Measure system health:
+**Conservative estimate:** €35K-70K annually
 
-daily run success rate
+**Document assumptions clearly:** Conversion rates are industry benchmarks, not guaranteed.
 
-webhook failure rate
+---
 
-export success rate
+## 14. Error Handling
 
-average execution time
+### Principles
 
-alert frequency (target: low single digits per month; validate during pilot)
+1. **Fail safe** (no partial silent failures)
+2. **Logs always written** (even on error)
+3. **Retry only transient failures** (not logic errors)
 
-16. Rollout plan (if implemented)
+---
 
-Shadow mode: generate outputs, do not post to main channels
+### Error Scenarios
 
-Pilot: WARNING only, limited channel
+#### **BigQuery Timeout**
 
-Production: WARNING + CRITICAL with escalation
+**Response:**
+- Retry 3 times with exponential backoff (2s, 4s, 8s)
+- If all fail: Log error, email data team
+- Impact: None (next daily run catches up)
 
-Each phase has a rollback:
+---
 
-disable MCP server; SQL pipelines continue unchanged
+#### **Make.com Webhook Failure**
 
-17. Open questions (explicit)
+**Response:**
+- Retry 2 times (5s apart)
+- If fails: Write log, send email backup with brief + export links
+- Impact: No Slack/Jira, but email ensures visibility
 
-These are not blockers for the design doc, but should be clarified for real implementation:
+---
 
-Where to store exports (GCS vs Sheets only vs both)?
+#### **Google Sheets Upload Failure**
 
-Ticketing system of choice (Jira/Asana/Trello)?
+**Response:**
+- Keep CSV in Cloud Storage
+- Include GCS download link in brief
+- Impact: Manual download (minor inconvenience)
 
-Does business want a value threshold for P1?
+---
 
-Do we require “recent INACTIVE” for P3?
+#### **No Baseline Available (Day 1-7)**
 
-SLA expectations for response time and escalation ownership?
+**Response:**
+- `alert_flag = FALSE`
+- `severity = INFO`
+- System waits until Day 8
+- Impact: None (expected warmup period)
 
-18. Appendix
-18.1 Data lineage (conceptual)
+---
 
-orders → base_customers → retention_snapshot → churn_detection
-retention_snapshot → alert_logic
-base_customers + retention_snapshot + churn_detection → customer_priority
-alert_logic + customer_priority → playbook outputs + ops_runs_log
+## 15. Monitoring
 
-18.2 Implementation boundaries
+### System Health Metrics
 
-This document intentionally separates:
+**Track:**
+- Daily run success rate (target: >95%)
+- Webhook failure rate (target: <5%)
+- Export success rate (target: >95%)
+- Average execution time (target: <60 seconds)
+- Alert frequency (target: 2-3 per month)
 
-detection/scoring (SQL; stable)
+**Alerts on:**
+- Success rate <90% for 2 consecutive days
+- Execution time >120 seconds
+- Alert frequency >5/month (too sensitive) or 0 for 60 days (too conservative)
 
-orchestration (MCP; replaceable)
+---
 
-execution (Make; replaceable)
+## 16. Rollout Plan
 
-measurement (future v2)
+### Phase 1: Shadow Mode (Week 4)
 
-End of design doc.
+**Behavior:**
+- System runs daily
+- Generates all outputs
+- **Nothing posted publicly** (no Slack, no Jira)
+- Outputs saved to test folder
+
+**Success criteria:**
+- 7 consecutive days with no errors
+- CRM manager approves brief format
+- Export format works in CRM tool
+
+---
+
+### Phase 2: Pilot (Weeks 5-6)
+
+**Behavior:**
+- WARNING alerts live (CRITICAL disabled)
+- Posted to test channel `#retention-test`
+- Jira tickets in test project
+- CRM team launches actual campaigns
+
+**Success criteria:**
+- 2 WARNING alerts handled successfully
+- Campaign launched within 30 minutes
+- No false positives
+
+---
+
+### Phase 3: Full Production (Week 7+)
+
+**Behavior:**
+- WARNING and CRITICAL both live
+- Posted to main channel `#retention-alerts`
+- Jira tickets in production project
+- Full team access
+
+---
+
+### Rollback Plan
+
+**Trigger rollback if:**
+- False positive rate >5%
+- System downtime >24 hours
+- Team requests disable
+
+**Procedure:**
+```bash
+# 1. Disable MCP server
+$ systemctl stop mcp-retention-ops
+
+# 2. Pause Make.com workflows (UI)
+
+# 3. Notify team (Slack)
+
+# 4. Document issue, fix, redeploy when ready
+```
+
+**Risk:** LOW (MCP only reads, SQL continues unchanged)
+
+---
+
+## 17. Open Questions
+
+### Technical Decisions
+
+**Q1: Export storage strategy?**
+- Options: GCS only, Sheets only, or both
+- Recommendation: Both (Sheets primary, GCS backup)
+
+**Q2: Ticketing system?**
+- Options: Jira, Asana, Trello, Linear
+- Recommendation: Jira (most common)
+
+**Q3: P1 value threshold?**
+- Options: No threshold, or filter by median revenue
+- Recommendation: Start without, add if P1 >150
+
+**Q4: P3 recency filter?**
+- Options: 60 days, 90 days, 120 days, or no filter
+- Recommendation: 90 days (industry standard)
+
+---
+
+### Business Decisions
+
+**Q5: Alert escalation SLA?**
+- WARNING response time: 24 hours?
+- CRITICAL response time: 4 hours?
+- Who owns escalation?
+
+**Q6: Campaign response expectations?**
+- Who executes campaigns? (CRM? Marketing?)
+- What if export lists too large?
+- Acceptable response time?
+
+**Q7: Success measurement?**
+- What KPIs define success?
+- How long should pilot run?
+- Rollback threshold?
+
+---
+
+## 18. Appendix
+
+### 18.1 Data Lineage (Conceptual)
+
+```
+orders
+  ↓
+base_customers (SQL1)
+  ↓
+  ├─→ retention_snapshot (SQL2)
+  │     ↓
+  │     ├─→ churn_detection (SQL3)
+  │     │     ↓
+  │     │     └─→ customer_priority (NEW)
+  │     │
+  │     └─→ alert_logic (SQL5)
+  │           ↓
+  │           └─→ MCP Server
+  │                 ↓
+  │                 └─→ ops_runs_log (NEW)
+  │
+  └─→ cohort_retention_evolution (SQL4)
+```
+
+---
+
+### 18.2 Implementation Boundaries
+
+**This document intentionally separates:**
+
+| Layer | Technology | Changeability |
+|-------|------------|---------------|
+| Detection/Scoring | SQL (SQL1-5) | Stable, trusted |
+| Orchestration | MCP | Replaceable |
+| Execution | Make.com | Replaceable |
+| Measurement | Future V2 | To be designed |
+
+**Design philosophy:** Each layer independent, swappable without affecting others.
+
+---
+
+## End of Design Document
+
+**Next steps if approved:**
+1. Stakeholder review (CRM, Marketing, Data teams)
+2. Technical validation (Data Engineering review)
+3. Budget approval
+4. 3-week implementation sprint
+5. Shadow mode → Pilot → Production rollout
+
+**Questions:** Contact François Tilkin
+
+---
+
+*Last updated: 2026-01-17*  
+*Version: 1.0*  
+*Status: Design Complete — Awaiting Implementation Approval*
