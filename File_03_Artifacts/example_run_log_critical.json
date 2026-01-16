@@ -1,0 +1,60 @@
+// /artifacts/example_run_log_critical.json
+{
+  "run_id": "run_20260119_064501_f7c2",
+  "run_timestamp": "2026-01-19T06:45:01Z",
+  "alert_date": "2026-01-19",
+  "severity": "CRITICAL",
+  "alert_flag": true,
+  "current_value": 27.1,
+  "baseline_value": 21.5,
+  "delta_relative_pct": 26.0,
+  "sample_size": 50842,
+  "priority_queue": {
+    "p1_count": 104,
+    "p2_count": 468,
+    "p3_count": 251,
+    "total_prioritized": 823
+  },
+  "exports": {
+    "destination": "gsheet",
+    "p1": {
+      "rows_exported": 104,
+      "link": "https://docs.google.com/spreadsheets/d/EXAMPLE_P1_20260119"
+    },
+    "p2": {
+      "rows_exported": 468,
+      "link": "https://docs.google.com/spreadsheets/d/EXAMPLE_P2_20260119"
+    },
+    "p3": {
+      "rows_exported": 251,
+      "link": "https://docs.google.com/spreadsheets/d/EXAMPLE_P3_20260119"
+    }
+  },
+  "execution": {
+    "playbook": "make.com_webhook",
+    "webhook_called": true,
+    "ticket_created": true,
+    "ticket_id": "RET-2412",
+    "ticket_priority": "URGENT",
+    "slack_posted": true,
+    "slack_channel": "#retention-alerts",
+    "slack_message_ts": "1737278701.654321",
+    "escalation": {
+      "enabled": true,
+      "mode": "channel_mention",
+      "target": "@channel"
+    }
+  },
+  "artifacts": {
+    "brief_path": "artifacts/example_brief_critical.md",
+    "dashboard_link": "[LINK_PLACEHOLDER_LOOKER_DASHBOARD]",
+    "gsheet_links": {
+      "p1": "https://docs.google.com/spreadsheets/d/EXAMPLE_P1_20260119",
+      "p2": "https://docs.google.com/spreadsheets/d/EXAMPLE_P2_20260119",
+      "p3": "https://docs.google.com/spreadsheets/d/EXAMPLE_P3_20260119"
+    }
+  },
+  "status": "success",
+  "error_message": null,
+  "execution_time_ms": 6120
+}
