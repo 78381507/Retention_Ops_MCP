@@ -177,7 +177,7 @@ SQL remains source of truth. MCP is interoperability/orchestration layer only.
 │          DETECTION & SCORING (Existing SQL — Projects 1 & 2) │
 │                                                              │
 │  SQL5: alert_logic                                           │
-│  ├─ alert_flag (TRUE/FALSE)                                 │
+│  ├─ alert_flag (TRUE/FALSE)                                  │
 │  ├─ severity (WARNING/CRITICAL)                              │
 │  └─ deltas vs baseline                                       │
 │                                                              │
