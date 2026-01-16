@@ -1,0 +1,11 @@
+run_date;customer_id;retention_status;churn_risk_level;churn_risk_score;priority_tier;priority_score;priority_reason;days_since_last_order;total_revenue;total_orders;avg_order_value;recommended_action;value_proxy
+2026-01-12;CUST_17850;ACTIVE;HIGH;70;P1;94.9;ACTIVE + HIGH risk + high value;24;3847.92;18;213.77;VIP outreach + light incentive;3847.92
+2026-01-12;CUST_40219;ACTIVE;HIGH;70;P1;92.1;ACTIVE + HIGH risk + high value;19;2710.40;14;193.60;VIP outreach + light incentive;2710.40
+2026-01-12;CUST_09311;ACTIVE;HIGH;70;P1;90.7;ACTIVE + HIGH risk + value;21;1985.15;11;180.47;Personal email + free shipping;1985.15
+2026-01-12;CUST_55107;ACTIVE;HIGH;70;P1;89.3;ACTIVE + HIGH risk + value;17;1632.00;10;163.20;Personal email + free shipping;1632.00
+2026-01-12;CUST_22490;ACTIVE;HIGH;70;P1;88.4;ACTIVE + HIGH risk + urgency;26;1298.60;9;144.29;Personal email + reminder;1298.60
+2026-01-12;CUST_76002;ACTIVE;HIGH;70;P1;87.8;ACTIVE + HIGH risk + urgency;23;1189.30;8;148.66;Personal email + reminder;1189.30
+2026-01-12;CUST_31044;ACTIVE;HIGH;70;P1;86.5;ACTIVE + HIGH risk;20;945.80;7;135.11;Win-back touch (soft);945.80
+2026-01-12;CUST_61988;ACTIVE;HIGH;70;P1;85.9;ACTIVE + HIGH risk;18;880.25;7;125.75;Win-back touch (soft);880.25
+2026-01-12;CUST_47011;ACTIVE;HIGH;70;P1;84.6;ACTIVE + HIGH risk;16;742.90;6;123.82;Win-back touch (soft);742.90
+2026-01-12;CUST_10573;ACTIVE;HIGH;70;P1;83.8;ACTIVE + HIGH risk;22;690.10;6;115.02;Win-back touch (soft);690.10
