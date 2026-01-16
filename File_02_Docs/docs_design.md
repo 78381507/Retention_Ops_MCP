@@ -499,15 +499,24 @@ urgency_bonus = min(10, days_since_last_order / 3)
 
 ---
 
-### 7.3 Recommended Action (Rule-Based)
+### 7.3 Recommended Action (Rule-Based with Value Segmentation)
 
-**Simple mapping; no personalization in V1:**
+**P1 Actions vary by customer value (explainable sub-segmentation):**
 
-| Tier | Action |
-|------|--------|
-| P1 | VIP outreach + light incentive (10% discount) |
-| P2 | Win-back sequence + free shipping |
-| P3 | Strong comeback offer (20% off) or survey |
+| Value Segment | Threshold | Action | Rationale |
+|---------------|-----------|--------|-----------|
+| High-value | >€2,000 | VIP outreach + 10% loyalty incentive | Highest ROI, personalized touch |
+| Medium-value | €1,000-2,000 | Personal email + free shipping offer | Balance personalization + cost |
+| Standard-value | <€1,000 | Personal email + reminder | Cost-effective prevention |
+
+**P2 Actions:**
+- Win-back email sequence (3 emails, 7 days) + free shipping
+
+**P3 Actions:**
+- Strong comeback offer (20% discount) + survey
+
+**Implementation note:** V1 uses value-based segmentation within P1 to optimize ROI while remaining rule-based and explainable. This avoids the "one-size-fits-all" approach while staying auditable (no ML black box).
+```
 
 ---
 
