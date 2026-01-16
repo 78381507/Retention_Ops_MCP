@@ -1,5 +1,5 @@
-# docs/design.md
 # RetentionOps MCP — Design Document (Long Form)
+
 Owner: François Tilkin  
 Status: Design complete (not implemented)  
 Scope: Project 3 closes the loop of Projects 1 & 2 (SQL-based detection → operational execution)
