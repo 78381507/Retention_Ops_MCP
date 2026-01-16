@@ -41,24 +41,24 @@ No ML. No “AI magic”. Rule-based, explainable, and safe to disable.
 
 ```
 SQL1-5 (existing) Execution (no-code)
-┌───────────────────────┐ ┌───────────────────────────────┐
-│ SQL5: alert_logic │ alert │ Make.com webhook │
-│ (AT_RISK% vs baseline) ├──────────► │ - Slack post │
-└───────────┬───────────┘ │ - Jira/Asana ticket │
-│ │ - Google Sheet upload │
-│ context + audiences │ - Store artifact links │
-┌───────────▼───────────┐ └───────────────┬───────────────┘
-│ MCP Server (new) │ │
-│ - reads SQL tables │ │
-│ - builds Action Pack │ │
-│ - exports P1/P2/P3 │ │
-│ - writes logs │ │
-└───────────┬───────────┘ │
-│ │
-┌───────────▼───────────┐ │
+┌───────────────────────┐            ┌───────────────────────────────┐
+│ SQL5: alert_logic     │   alert    │ Make.com webhook              │
+│ (AT_RISK% vs baseline)├──────────► │ - Slack post                  │
+└───────────┬───────────┘            │ - Jira/Asana ticket           │
+            │                        │ - Google Sheet upload         │
+            │ context + audiences    │ - Store artifact links        │
+┌───────────▼───────────┐            └───────────────┬───────────────┘
+│   MCP Server (new)    │                            │
+│ - reads SQL tables    │                            │
+│ - builds Action Pack  │                            │
+│ - exports P1/P2/P3    │                            │
+│ - writes logs         │                            │
+└───────────┬───────────┘                            │
+            │                                        │
+┌───────────▼───────────┐                            │
 │ BigQuery (new tables) │◄───────────────────────────┘
-│ - customer_priority │
-│ - ops_runs_log │
+│ - customer_priority   │
+│ - ops_runs_log        │
 └───────────────────────┘
 ```
 ---
