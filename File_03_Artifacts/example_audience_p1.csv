@@ -5,7 +5,7 @@ run_date;customer_id;retention_status;churn_risk_level;churn_risk_score;priority
 2026-01-12;CUST_55107;ACTIVE;HIGH;70;P1;89.3;ACTIVE + HIGH risk + value;17;1632.00;10;163.20;Personal email + free shipping;1632.00
 2026-01-12;CUST_22490;ACTIVE;HIGH;70;P1;88.4;ACTIVE + HIGH risk + urgency;26;1298.60;9;144.29;Personal email + reminder;1298.60
 2026-01-12;CUST_76002;ACTIVE;HIGH;70;P1;87.8;ACTIVE + HIGH risk + urgency;23;1189.30;8;148.66;Personal email + reminder;1189.30
-2026-01-12;CUST_31044;ACTIVE;HIGH;70;P1;86.5;ACTIVE + HIGH risk;20;945.80;7;135.11;Win-back touch (soft);945.80
-2026-01-12;CUST_61988;ACTIVE;HIGH;70;P1;85.9;ACTIVE + HIGH risk;18;880.25;7;125.75;Win-back touch (soft);880.25
-2026-01-12;CUST_47011;ACTIVE;HIGH;70;P1;84.6;ACTIVE + HIGH risk;16;742.90;6;123.82;Win-back touch (soft);742.90
-2026-01-12;CUST_10573;ACTIVE;HIGH;70;P1;83.8;ACTIVE + HIGH risk;22;690.10;6;115.02;Win-back touch (soft);690.10
+2026-01-12;CUST_31044;ACTIVE;HIGH;70;P1;86.5;ACTIVE + HIGH risk;20;945.80;7;135.11;Personal email + reminder;945.80
+2026-01-12;CUST_61988;ACTIVE;HIGH;70;P1;85.9;ACTIVE + HIGH risk;18;880.25;7;125.75;Personal email + reminder;880.25
+2026-01-12;CUST_47011;ACTIVE;HIGH;70;P1;84.6;ACTIVE + HIGH risk;16;742.90;6;123.82;Personal email + reminder;742.90
+2026-01-12;CUST_10573;ACTIVE;HIGH;70;P1;83.8;ACTIVE + HIGH risk;22;690.10;6;115.02;Personal email + reminder;690.10
