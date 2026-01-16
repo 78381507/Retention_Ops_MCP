@@ -155,6 +155,6 @@ This design shows:
 ---
 
 ## Next
-Full design spec (long form): `docs/design.md`  
-Example outputs (mock artifacts): `artifacts/`
+Full design spec (long form): `File_02_Docs/docs_design.md`  
+Example outputs (mock artifacts): `File_03_Artifacts/`
 
