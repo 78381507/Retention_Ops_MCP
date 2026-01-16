@@ -1,4 +1,3 @@
-# /artifacts/example_brief_critical.md
 # Retention Alert — CRITICAL
 Date: 2026-01-19
 
