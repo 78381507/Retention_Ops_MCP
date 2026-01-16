@@ -70,6 +70,7 @@ Key principle: SQL remains the source of truth; MCP is an interoperability/orche
 
 ## 4. Architecture
 
+```
 Detection & Scoring (existing SQL) Orchestration & Execution
 ┌──────────────────────────────┐ ┌─────────────────────────────────┐
 │ SQL5: alert_logic │ alert │ MCP Server (new) │
@@ -91,7 +92,7 @@ Detection & Scoring (existing SQL) Orchestration & Execution
 │ - customer_priority │
 │ - ops_runs_log │
 └──────────────────────────────┘
-
+```
 Make.com (no-code execution)
 
 Slack post
