@@ -72,26 +72,26 @@ Key principle: SQL remains the source of truth; MCP is an interoperability/orche
 
 ```
 Detection & Scoring (existing SQL) Orchestration & Execution
-┌──────────────────────────────┐ ┌─────────────────────────────────┐
-│ SQL5: alert_logic │ alert │ MCP Server (new) │
-│ - alert_flag ├──────────► │ - reads SQL outputs │
-│ - severity │ │ - builds Action Pack │
-│ - deltas vs baseline │ │ - exports P1/P2/P3 │
-└───────────────┬──────────────┘ │ - triggers Make webhook │
-│ │ - writes audit logs │
-│ context + priority └───────────────┬─────────────────┘
-┌───────────────▼──────────────┐ │
-│ SQL2: retention_snapshot │ │
-│ SQL3: churn_detection │ │
-│ SQL1: base_customers │ │
-└───────────────┬──────────────┘ │
-│ │
-▼ │
-┌──────────────────────────────┐ │
-│ BigQuery (new tables) │◄───────────────────────────┘
-│ - customer_priority │
-│ - ops_runs_log │
-└──────────────────────────────┘
+┌──────────────────────────────┐            ┌─────────────────────────────────┐
+│     SQL5: alert_logic        │   alert    │      MCP Server (new)           │
+│      - alert_flag            ├──────────► │       - reads SQL outputs       │
+│      - severity              │            │       - builds Action Pack      │
+│      - deltas vs baseline    │            │       - exports P1/P2/P3        │
+└───────────────┬──────────────┘            │       - triggers Make webhook   │
+                │                           │       - writes audit logs       │
+                │  context + priority       └────────────────┬────────────────┘
+┌───────────────▼──────────────┐                             │
+│   SQL2: retention_snapshot   │                             │ 
+│   SQL3: churn_detection      │                             │
+│   SQL1: base_customers       │                             │
+└───────────────┬──────────────┘                             │
+                │                                            │
+                │                                            │
+┌───────────────▼───────────────┐                            │
+│     BigQuery (new tables)     │◄───────────────────────────┘
+│      - customer_priority      │
+│      - ops_runs_log           │
+└───────────────────────────────┘
 ```
 Make.com (no-code execution)
 
