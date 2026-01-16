@@ -45,7 +45,7 @@
     }
   },
   "artifacts": {
-    "brief_path": "artifacts/example_brief_critical.md",
+    "brief_path": "File_03_Artifacts/example_brief_critical.md",
     "dashboard_link": "[LINK_PLACEHOLDER_LOOKER_DASHBOARD]",
     "gsheet_links": {
       "p1": "https://docs.google.com/spreadsheets/d/EXAMPLE_P1_20260119",
