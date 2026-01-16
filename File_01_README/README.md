@@ -39,7 +39,7 @@ No ML. No “AI magic”. Rule-based, explainable, and safe to disable.
 
 ## Architecture
 
-'''
+```
 SQL1-5 (existing) Execution (no-code)
 ┌───────────────────────┐ ┌───────────────────────────────┐
 │ SQL5: alert_logic │ alert │ Make.com webhook │
@@ -60,7 +60,7 @@ SQL1-5 (existing) Execution (no-code)
 │ - customer_priority │
 │ - ops_runs_log │
 └───────────────────────┘
-'''
+```
 ---
 
 ## Inputs (already available from Project 2)
