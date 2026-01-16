@@ -1,0 +1,50 @@
+{
+  "run_id": "run_20260112_064512_a3f9",
+  "run_timestamp": "2026-01-12T06:45:12Z",
+  "alert_date": "2026-01-12",
+  "severity": "WARNING",
+  "alert_flag": true,
+  "current_value": 25.2,
+  "baseline_value": 21.4,
+  "delta_relative_pct": 18.0,
+  "sample_size": 49378,
+  "priority_queue": {
+    "p1_count": 87,
+    "p2_count": 312,
+    "p3_count": 189,
+    "total_prioritized": 588
+  },
+  "exports": {
+    "destination": "gsheet",
+    "p1": {
+      "rows_exported": 87,
+      "link": "https://docs.google.com/spreadsheets/d/EXAMPLE_P1_20260112"
+    },
+    "p2": {
+      "rows_exported": 312,
+      "link": "https://docs.google.com/spreadsheets/d/EXAMPLE_P2_20260112"
+    },
+    "p3": {
+      "rows_exported": 0,
+      "link": null,
+      "note": "P3 not exported for WARNING (CRITICAL only)."
+    }
+  },
+  "execution": {
+    "playbook": "make.com_webhook",
+    "webhook_called": true,
+    "ticket_created": true,
+    "ticket_id": "RET-2401",
+    "slack_posted": true,
+    "slack_channel": "#retention-alerts",
+    "slack_message_ts": "1736666712.123456"
+  },
+  "artifacts": {
+    "brief_path": "artifacts/example_brief_warning.md",
+    "audience_p1_path": "artifacts/example_audience_p1.csv",
+    "dashboard_link": "[LINK_PLACEHOLDER_LOOKER_DASHBOARD]"
+  },
+  "status": "success",
+  "error_message": null,
+  "execution_time_ms": 3842
+}
