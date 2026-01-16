@@ -779,7 +779,7 @@ Requires: Campaign events or conversion proxy (repurchase tracking)
 
 ### 10.1 In-Repo Example Artifacts (For Portfolio)
 
-**Location:** `/artifacts/`
+**Location:** `File_03_Artifacts/`
 
 **Files:**
 - `example_brief_warning.md` — Manager-ready briefing
