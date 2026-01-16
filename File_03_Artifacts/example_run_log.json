@@ -40,8 +40,8 @@
     "slack_message_ts": "1736666712.123456"
   },
   "artifacts": {
-    "brief_path": "artifacts/example_brief_warning.md",
-    "audience_p1_path": "artifacts/example_audience_p1.csv",
+    "brief_path": "File_03_Artifacts/example_brief_warning.md",
+    "audience_p1_path": "File_03_Artifacts/example_audience_p1.csv",
     "dashboard_link": "[LINK_PLACEHOLDER_LOOKER_DASHBOARD]"
   },
   "status": "success",
