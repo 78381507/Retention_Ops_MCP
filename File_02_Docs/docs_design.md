@@ -516,7 +516,6 @@ urgency_bonus = min(10, days_since_last_order / 3)
 - Strong comeback offer (20% discount) + survey
 
 **Implementation note:** V1 uses value-based segmentation within P1 to optimize ROI while remaining rule-based and explainable. This avoids the "one-size-fits-all" approach while staying auditable (no ML black box).
-```
 
 ---
 
