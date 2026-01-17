@@ -1020,25 +1020,7 @@ $ systemctl stop mcp-retention-ops
 
 ### 18.1 Data Lineage (Conceptual)
 
-```
-orders
-  ↓
-base_customers (SQL1)
-  ↓
-  ├─→ retention_snapshot (SQL2)
-  │     ↓
-  │     ├─→ churn_detection (SQL3)
-  │     │     ↓
-  │     │     └─→ customer_priority (NEW)
-  │     │
-  │     └─→ alert_logic (SQL5)
-  │           ↓
-  │           └─→ MCP Server
-  │                 ↓
-  │                 └─→ ops_runs_log (NEW)
-  │
-  └─→ cohort_retention_evolution (SQL4)
-```
+![Date Lineage](https://github.com/78381507/Retention_Ops_MCP/blob/main/File_02_Docs/data_lineage.png)
 
 ---
 
