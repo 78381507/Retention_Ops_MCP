@@ -172,55 +172,7 @@ SQL remains source of truth. MCP is interoperability/orchestration layer only.
 
 ## 4. System Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│          DETECTION & SCORING (Existing SQL — Projects 1 & 2) │
-│                                                              │
-│  SQL5: alert_logic                                           │
-│  ├─ alert_flag (TRUE/FALSE)                                  │
-│  ├─ severity (WARNING/CRITICAL)                              │
-│  └─ deltas vs baseline                                       │
-│                                                              │
-│  Context Tables:                                             │
-│  ├─ SQL2: retention_snapshot (status)                        │
-│  ├─ SQL3: churn_detection (risk)                             │
-│  └─ SQL1: base_customers (facts)                             │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│          ORCHESTRATION (MCP Server — NEW)                    │
-│                                                              │
-│  MCP Tools:                                                  │
-│  1. get_alert_decision(date)                                 │
-│  2. get_operational_context(date)                            │
-│  3. build_priority_queue(date)                               │
-│  4. generate_brief(date, format)                             │
-│  5. export_audience(date, tier, destination)                 │
-│  6. trigger_playbook(date)                                   │
-│                                                              │
-│  New Tables:                                                 │
-│  ├─ customer_priority (P1/P2/P3 assignments)                 │
-│  └─ ops_runs_log (audit trail)                               │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│          EXECUTION (Make.com — No-Code Workflows)            │
-│                                                              │
-│  WARNING Playbook:                                           │
-│  ├─ Post brief to Slack (#retention-alerts)                  │
-│  ├─ Create Jira ticket (Priority: High)                      │
-│  ├─ Upload P1 + P2 to Google Sheets                          │
-│  └─ Write execution log                                      │
-│                                                              │
-│  CRITICAL Playbook:                                          │
-│  ├─ Post brief + @channel escalation                         │
-│  ├─ Create urgent Jira ticket (Priority: Highest)            │
-│  ├─ Upload P1 + P2 + P3 to Google Sheets                     │
-│  └─ Write execution log                                      │
-└──────────────────────────────────────────────────────────────┘
-```
+![System Architecture](https://github.com/78381507/Retention_Ops_MCP/blob/main/File_02_Docs/system_architecture_retentionops_v3.png)
 
 ---
 
